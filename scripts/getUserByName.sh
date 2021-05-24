@@ -26,6 +26,6 @@ USER=$(curl -k -sS -X GET "http://$KEYCLOAK_IP/auth/admin/realms/$REALM_NAME/use
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer $ACCESS_TOKEN")
 
-echo $USER | jq -r ".[] | select(.username==\"$USERNAME\")"
+echo $USER | jq -r ".[] | select(.username==\"$USER_NAME\")"
 
 $SCRIPT_DIR/logoutAdminSession.sh "$KEYCLOAK_IP" "$ADMIN_TOKEN"
