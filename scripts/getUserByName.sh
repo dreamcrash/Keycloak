@@ -22,8 +22,10 @@ ADMIN_TOKEN="$($SCRIPT_DIR/getAdminToken.sh "$KEYCLOAK_IP" "$ADMIN_USERNAME" "$A
 ACCESS_TOKEN="$(echo $ADMIN_TOKEN | jq -r .access_token)"
 
 
-curl -k -sS -X GET "http://$KEYCLOAK_IP/auth/admin/realms/$REALM_NAME/users/?username=$USER_NAME" \
+USER=$(curl -k -sS -X GET "http://$KEYCLOAK_IP/auth/admin/realms/$REALM_NAME/users/?username=$USER_NAME" \
 		-H "Content-Type: application/json" \
-		-H "Authorization: Bearer $ACCESS_TOKEN"
+		-H "Authorization: Bearer $ACCESS_TOKEN")
+
+echo $USER | jq -r ".[] | select(.username==\"$USERNAME\")"
 
 $SCRIPT_DIR/logoutAdminSession.sh "$KEYCLOAK_IP" "$ADMIN_TOKEN"
