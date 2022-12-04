@@ -4,7 +4,6 @@ set -e
 set -u -o pipefail
 
 
-SCRIPT_DIR="$(dirname "$0")"
 case $# in
 5)
     KEYCLOAK_IP="$1"

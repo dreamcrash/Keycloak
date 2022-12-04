@@ -3,7 +3,6 @@
 set -e
 set -u -o pipefail
 
-SCRIPT_DIR="$(dirname "$0")"
 case $# in
 6)
     KEYCLOAK_IP="$1"
