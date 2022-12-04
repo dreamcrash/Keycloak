@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+
+SCRIPT_DIR="$(dirname "$0")"
+case $# in
+5)
+   KEYCLOAK_IP="$1"
+   REALM_NAME="$2"
+   CLIENT_ID="$3"
+   CLIENT_SECRET="$4"
+   ACCESS_TOKEN="$5"
+   ;;
+4)
+   KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+   REALM_NAME="$1"
+   CLIENT_ID="$2"
+   CLIENT_SECRET="$3"
+   ACCESS_TOKEN="$4"
+   ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Realm Name> <Client ID> <Client Secret> <Access Token>" >&2
+    echo "   or: $(basename "$0") <Realm Name> <Client ID> <Client Secret> <Access Token>" >&2
+    exit 1
+    ;;
+esac
+
+INTROSPECT_TOKEN=$(curl -k -sS "https://$KEYCLOAK_IP/auth/realms/${REALM_NAME}/protocol/openid-connect/token/introspect" \
+			-d "client_id=$CLIENT_ID" \
+			-d "client_secret=$CLIENT_SECRET" \
+			-d "token=$ACCESS_TOKEN")
+			
+echo $INTROSPECT_TOKEN | jq -r .active

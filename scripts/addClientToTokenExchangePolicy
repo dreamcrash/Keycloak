@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+shopt -s inherit_errexit
+
+SCRIPT_DIR="$(dirname "$0")"
+
+case $# in
+6)
+    KEYCLOAK_IP="$1"
+    ADMIN_USERNAME="$2"
+    ADMIN_PASSWORD="$3"
+    REALM_NAME="$4"
+    CLIENT_ID="$5"
+    TOKEN_EXCHANGE_POLICY_NAME="$6"
+    ;;
+3)
+    ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
+    ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
+    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    REALM_NAME="$1"
+    CLIENT_ID="$2"
+    TOKEN_EXCHANGE_POLICY_NAME="$3"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Admin User Name> <Admin Password> <Realm Name> <Client ID to add to Policy> <Policy Name>" >&2
+    echo "   or: $(basename "$0") <Realm Name> <Client Id to add to Polcy> <Policy Name>" >&2
+    exit 1
+    ;;
+esac
+
+token_exchange_policy="$("${SCRIPT_DIR}"/getTokenExchangePolicy "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "${TOKEN_EXCHANGE_POLICY_NAME}")"
+if [ "${token_exchange_policy}" == "" ]; then
+    echo "The Token Exchange Policy with the name '${TOKEN_EXCHANGE_POLICY_NAME}' is missing"
+    exit 1
+fi
+
+client="$("${SCRIPT_DIR}"/getClient "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "${CLIENT_ID}")"
+id_client_to_add="$(echo "${client}" | jq -r .[0].id)"
+json_data="$(echo "${token_exchange_policy}" | jq -r --arg id_client_to_add "${id_client_to_add}" '.clients[.clients| length] |= . +  $id_client_to_add')"
+"${SCRIPT_DIR}"/setTokenExchangePolicy "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "${json_data}"

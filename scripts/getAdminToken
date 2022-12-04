@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+shopt -s inherit_errexit
+
+SCRIPT_DIR="$(dirname "$0")"
+case $# in
+3)
+    KEYCLOAK_IP="$1"
+    ADMIN_USERNAME="$2"
+    ADMIN_PASSWORD="$3"
+    ;;
+0)
+    ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
+    ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
+    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Admin User Name> <Admin Password>" >&2
+    echo "   or: $(basename "$0") <>" >&2
+    exit 1
+    ;;
+esac
+
+curl -k -sS -d "client_id=admin-cli" \
+    -d "username=${ADMIN_USERNAME}" \
+    -d "password=${ADMIN_PASSWORD}" \
+    -d "grant_type=password" \
+    "https://${KEYCLOAK_IP}/auth/realms/master/protocol/openid-connect/token"

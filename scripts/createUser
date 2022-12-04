@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+
+
+SCRIPT_DIR="$(dirname "$0")"
+case $# in
+5)
+    KEYCLOAK_IP="$1"
+    ADMIN_USERNAME="$2"
+    ADMIN_PASSWORD="$3"
+    REALM_NAME="$4"
+    USER_JSON_DATA="$5"
+    ;;
+2)
+    ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
+    ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
+    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    REALM_NAME="$1"
+    USER_JSON_DATA="$2"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Admin User Name> <Admin Password> <Realm Name> <User Json Data>" >&2
+    echo "   or: $(basename "$0") <Realm Name> <User Json Data>" >&2
+    exit 1
+    ;;
+esac
+
+ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
+ACCESS_TOKEN="$(echo "${ADMIN_TOKEN}" | jq -r .access_token)"
+
+username="$(echo "${USER_JSON_DATA}" | jq -r .username)"
+echo "<------- { Create Username : ===> '${REALM_NAME}/${username}' } ------->"
+
+curl -k -sS -X POST "https://${KEYCLOAK_IP}/auth/admin/realms/${REALM_NAME}/users" \
+		-H "Content-Type: application/json" \
+		-H "Authorization: Bearer ${ACCESS_TOKEN}" \
+		-d "${USER_JSON_DATA}"
+
+"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_IP}" "${ADMIN_TOKEN}"

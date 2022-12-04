@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+shopt -s inherit_errexit
+
+SCRIPT_DIR="$(dirname "$0")"
+case $# in
+2)
+    KEYCLOAK_IP="$1"
+    TOKEN="$2"
+    ;;
+1)
+    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    TOKEN="$1"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Token>" >&2
+    echo "   or: $(basename "$0") <Token>" >&2
+    exit 1
+    ;;
+esac
+
+ACCESS_TOKEN="$(echo "${TOKEN}" | jq -r .access_token)"
+SESSION_STATE="$(echo "${TOKEN}" | jq -r .session_state)"
+
+curl -k -sS -X DELETE "https://${KEYCLOAK_IP}/auth/admin/realms/master/sessions/${SESSION_STATE}" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}"

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail 
+
+SCRIPT_DIR="$(dirname "$0")"
+
+case $# in
+2)
+    KEYCLOAK_IP="$1"
+    REALM_NAME="$2"
+    ;;
+1)
+    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    REALM_NAME="$1"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Realm Name>" >&2
+    echo "   or: $(basename "$0") <Realm Name>" >&2
+    exit 1
+    ;;
+esac
+
+CERTIFICATE="$(curl -k -sS https://$KEYCLOAK_IP/auth/realms/$REALM_NAME/protocol/openid-connect/certs | jq -r .keys[0].x5c[0])"
+cat <<EOF > x5c-cert-formated.pem
+-----BEGIN CERTIFICATE-----
+$CERTIFICATE
+-----END CERTIFICATE-----
+EOF
+cat x5c-cert-formated.pem
+rm x5c-cert-formated.pem

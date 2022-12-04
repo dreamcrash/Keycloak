@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+shopt -s inherit_errexit
+
+SCRIPT_DIR="$(dirname "$0")"
+case $# in
+5)
+    KEYCLOAK_IP="$1"
+    ADMIN_USERNAME="$2"
+    ADMIN_PASSWORD="$3"
+    REALM_NAME="$4"
+    POLICY_NEW_JSON_DATA="$5"
+    ;;
+2)
+    ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
+    ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
+    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    REALM_NAME="$1"
+    POLICY_NEW_JSON_DATA="$2"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Admin User Name> <Admin Password> <Realm Name> <Policy Json Data>" >&2
+    echo "   or: $(basename "$0") <Realm Name> <Policy Json Data>" >&2
+    exit 1
+    ;;
+esac
+
+ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
+ACCESS_TOKEN="$(echo "${ADMIN_TOKEN}" | jq -r .access_token)"
+
+id_token_exchange_policy="$(echo "${POLICY_NEW_JSON_DATA}" | jq -r .id)"
+realm_management=$("${SCRIPT_DIR}"/getClient "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "realm-management")
+id_realm_management="$(echo "${realm_management}" | jq -r .[0].id)"
+curl -k -sS -X PUT "https://${KEYCLOAK_IP}/auth/admin/realms/${REALM_NAME}/clients/${id_realm_management}/authz/resource-server/policy/client/${id_token_exchange_policy}" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -d "${POLICY_NEW_JSON_DATA}"
+
+"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_IP}" "${ADMIN_TOKEN}"
