@@ -4,16 +4,17 @@ set -e
 set -u -o pipefail
 
 SCRIPT_DIR="$(dirname "$0")"
+
 case $# in
 5)
-   KEYCLOAK_IP="$1"
+   KEYCLOAK_BASE_URL="$1"
    REALM_NAME="$2"
    CLIENT_ID="$3"
    CLIENT_SECRET="$4"
    ACCESS_TOKEN="$5"
    ;;
 4)
-   KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+   KEYCLOAK_BASE_URL="$("${SCRIPT_DIR}"/getKeycloakBaseUrl)"
    REALM_NAME="$1"
    CLIENT_ID="$2"
    CLIENT_SECRET="$3"
@@ -27,7 +28,7 @@ case $# in
     ;;
 esac
 
-INTROSPECT_TOKEN=$(curl -k -sS "https://$KEYCLOAK_IP/auth/realms/${REALM_NAME}/protocol/openid-connect/token/introspect" \
+INTROSPECT_TOKEN=$(curl -k -sS "$KEYCLOAK_BASE_URL/realms/${REALM_NAME}/protocol/openid-connect/token/introspect" \
 			-d "client_id=$CLIENT_ID" \
 			-d "client_secret=$CLIENT_SECRET" \
 			-d "token=$ACCESS_TOKEN")

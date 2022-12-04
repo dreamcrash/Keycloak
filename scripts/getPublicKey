@@ -6,13 +6,14 @@ set -u -o pipefail
 
 SCRIPT_DIR="$(dirname "$0")"
 
+
 case $# in
 2)
-    KEYCLOAK_IP="$1"
+    KEYCLOAK_BASE_URL="$1"
     REALM_NAME="$2"
     ;;
 1)
-    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    KEYCLOAK_BASE_URL="$("${SCRIPT_DIR}"/getKeycloakBaseUrl)"
     REALM_NAME="$1"
     ;;
 *)
@@ -23,4 +24,4 @@ case $# in
     ;;
 esac
 
-curl -k -sS https://$KEYCLOAK_IP/auth/realms/$REALM_NAME | jq -r .public_key
+curl -k -sS $KEYCLOAK_BASE_URL/realms/$REALM_NAME | jq -r .public_key

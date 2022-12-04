@@ -3,9 +3,11 @@
 set -e
 set -u -o pipefail
 
+SCRIPT_DIR="$(dirname "$0")"
+
 case $# in
 5)
-    KEYCLOAK_IP="$1"
+    KEYCLOAK_BASE_URL="$1"
     ADMIN_USERNAME="$2"
     ADMIN_PASSWORD="$3"
     REALM_NAME="$4"
@@ -14,7 +16,7 @@ case $# in
 2)
     ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
     ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
-    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    KEYCLOAK_BASE_URL="$("${SCRIPT_DIR}"/getKeycloakBaseUrl)"
     REALM_NAME="$1"
     USER_FEDERATION_JSON_DATA="$2"
     ;;
@@ -26,12 +28,12 @@ case $# in
     ;;
 esac
 
-ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
+ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_BASE_URL}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
 ACCESS_TOKEN="$(echo "${ADMIN_TOKEN}" | jq -r .access_token)"
 
-curl -k -sS -X POST "https://${KEYCLOAK_IP}/auth/admin/realms/${REALM_NAME}/components?type=org.keycloak.storage.UserStorageProvider&parent=${REALM_NAME}" \
+curl -k -sS -X POST "${KEYCLOAK_BASE_URL}/admin/realms/${REALM_NAME}/components?type=org.keycloak.storage.UserStorageProvider&parent=${REALM_NAME}" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -d "${USER_FEDERATION_JSON_DATA}"
 
-"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_IP}" "${ADMIN_TOKEN}"
+"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_BASE_URL}" "${ADMIN_TOKEN}"
