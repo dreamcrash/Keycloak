@@ -4,9 +4,10 @@ set -e
 set -u -o pipefail
 
 SCRIPT_DIR="$(dirname "$0")"
+
 case $# in
 5)
-    KEYCLOAK_IP="$1"
+    KEYCLOAK_BASE_URL="$1"
     ADMIN_USERNAME="$2"
     ADMIN_PASSWORD="$3"
     REALM_NAME="$4"
@@ -15,7 +16,7 @@ case $# in
 2)
     ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
     ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
-    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    KEYCLOAK_BASE_URL="$("${SCRIPT_DIR}"/getKeycloakBaseUrl)"
     REALM_NAME="$1"
     IDP_ALIAS="$2"
     ;;
@@ -27,16 +28,16 @@ case $# in
     ;;
 esac
 
-ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
+ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_BASE_URL}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
 ACCESS_TOKEN="$(echo "${ADMIN_TOKEN}" | jq -r .access_token)"
 
-REALM_MANAGEMENT_ID="$("${SCRIPT_DIR}"/getClient "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "realm-management" | jq -r .[0].id)"
+REALM_MANAGEMENT_ID="$("${SCRIPT_DIR}"/getClient "${KEYCLOAK_BASE_URL}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "realm-management" | jq -r .[0].id)"
 
-IDP_PERMISSIONS="$("${SCRIPT_DIR}"/getIdentityProviderPermissions "${KEYCLOAK_IP}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "${IDP_ALIAS}")"
+IDP_PERMISSIONS="$("${SCRIPT_DIR}"/getIdentityProviderPermissions "${KEYCLOAK_BASE_URL}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "${IDP_ALIAS}")"
 SCOPE_PERMISSIONS_TOKEN_EXCHANGE_ID="$(echo "${IDP_PERMISSIONS}" | jq -r .scopePermissions.\"token-exchange\")"
 
-curl -k -sS -X GET "https://${KEYCLOAK_IP}/auth/admin/realms/${REALM_NAME}/clients/${REALM_MANAGEMENT_ID}/authz/resource-server/permission/scope/${SCOPE_PERMISSIONS_TOKEN_EXCHANGE_ID}" \
+curl -k -sS -X GET "${KEYCLOAK_BASE_URL}/admin/realms/${REALM_NAME}/clients/${REALM_MANAGEMENT_ID}/authz/resource-server/permission/scope/${SCOPE_PERMISSIONS_TOKEN_EXCHANGE_ID}" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}"
 
-"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_IP}" "${ADMIN_TOKEN}"
+"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_BASE_URL}" "${ADMIN_TOKEN}"

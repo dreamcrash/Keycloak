@@ -4,16 +4,17 @@ set -e
 set -u -o pipefail
 
 SCRIPT_DIR="$(dirname "$0")"
+
 case $# in
 3)
-    KEYCLOAK_IP="$1"
+    KEYCLOAK_BASE_URL="$1"
     ADMIN_USERNAME="$2"
     ADMIN_PASSWORD="$3"
     ;;
 0)
     ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
     ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
-    KEYCLOAK_IP="$("${SCRIPT_DIR}"/getKeycloakIP)"
+    KEYCLOAK_BASE_URL="$("${SCRIPT_DIR}"/getKeycloakBaseUrl)"
     ;;
 *)
     echo "Wrong number of parameters" >&2
@@ -27,4 +28,4 @@ curl -k -sS -d "client_id=admin-cli" \
     -d "username=${ADMIN_USERNAME}" \
     -d "password=${ADMIN_PASSWORD}" \
     -d "grant_type=password" \
-    "https://${KEYCLOAK_IP}/auth/realms/master/protocol/openid-connect/token"
+    "${KEYCLOAK_BASE_URL}/realms/master/protocol/openid-connect/token"
