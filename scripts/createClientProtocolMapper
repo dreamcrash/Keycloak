@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+set -u -o pipefail
+
+SCRIPT_DIR="$(dirname "$0")"
+
+case $# in
+6)
+    KEYCLOAK_BASE_URL="$1"
+    ADMIN_USERNAME="$2"
+    ADMIN_PASSWORD="$3"
+    REALM_NAME="$4"
+    CLIENT_NAME="$5"
+    MAPPER_JSON="$6"
+    ;;
+3)
+    ADMIN_USERNAME="$("${SCRIPT_DIR}"/getAdminUsername)"
+    ADMIN_PASSWORD="$("${SCRIPT_DIR}"/getAdminPassword)"
+    KEYCLOAK_BASE_URL="$("${SCRIPT_DIR}"/getKeycloakBaseUrl)"
+    REALM_NAME="$1"
+    CLIENT_NAME="$2"
+    MAPPER_JSON="$3"
+    ;;
+*)
+    echo "Wrong number of parameters" >&2
+    echo "Usage: $(basename "$0") <Keycloak IP> <Admin User Name> <Admin Password> <Realm Name> <CLient Name> <Mapper Json Data>" >&2
+    echo "   or: $(basename "$0") <Realm Name> <Client Name> <Mapper Json Data>" >&2
+    exit 1
+    ;;
+esac
+
+ADMIN_TOKEN="$("${SCRIPT_DIR}"/getAdminToken "${KEYCLOAK_BASE_URL}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}")"
+ACCESS_TOKEN="$(echo "${ADMIN_TOKEN}" | jq -r .access_token)"
+
+CLIENT_ID="$("${SCRIPT_DIR}"/getClient "${KEYCLOAK_BASE_URL}" "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${REALM_NAME}" "${CLIENT_NAME}" | jq -r .[0].id )"
+
+curl -k -sS	-X POST "${KEYCLOAK_BASE_URL}/admin/realms/${REALM_NAME}/clients/${CLIENT_ID}/protocol-mappers/models" \
+		-H "Content-Type: application/json" \
+		-H "Authorization: Bearer $ACCESS_TOKEN" \
+		-d "${MAPPER_JSON}"
+
+
+"${SCRIPT_DIR}"/logoutAdminSession "${KEYCLOAK_BASE_URL}" "${ADMIN_TOKEN}"
